@@ -7,7 +7,7 @@ import Campaign from '../../../ethereum/campaign';
 import web3util from 'web3-utils';
 
 class RequestNew extends Component {
-  state = {value:'',description:'',recipient:''}
+  state = {value:'',description:'',recipient:'',loading:false,errorMessage:''}
 
   static async getInitialProps(props){
     const {address} = props.query;
@@ -16,6 +16,7 @@ class RequestNew extends Component {
 
   onSubmit = async (e) => {
      e.preventDefault();
+     this.setState({errorMessage:'',loading:true})
      const campaign = Campaign(this.props.address);
      const { description, value, recipient} = this.state;
      
@@ -24,15 +25,22 @@ class RequestNew extends Component {
        await campaign.methods.createRequest(description, web3util.toWei(value,'ether'),recipient).send({
          from:accounts[0]
        });
+       Router.pushRoute(`/campaigns/${this.props.address}/requests`);
      }
-     catch{
+     catch(err){
+      this.setState({errorMessage:err.message})    
      }
+
+     this.setState({loading:false})
   }
 
   render(){
     return (
       <Layout>
-         <Form onSubmit={this.onSubmit}>
+         <Form onSubmit={this.onSubmit} error={!!this.state.errorMessage}>
+            <Link route={`/campaigns/${this.props.address}/requests`}>
+              <a>  Back  </a>
+            </Link>
             <h3> Create a Request </h3>
             <Form.Field>
                <label> Description </label>
@@ -55,7 +63,8 @@ class RequestNew extends Component {
                   onChange={e=>this.setState({recipient:e.target.value})}
                />
             </Form.Field>
-            <Button primary> Create </Button>
+            <Message error header="Error" content={this.state.errorMessage} />
+            <Button primary loading={this.state.loading} disabled={this.state.loading}> Create </Button>
          </Form>
       </Layout>
     )
